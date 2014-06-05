@@ -1,6 +1,5 @@
 <?
-var_dump($_POST);
-var_dump($_GET);
+
 $filename = 'data/list.txt';
 $TODO_list = import($filename);
 $errorMessage = '';
@@ -60,10 +59,14 @@ if (count($_FILES) > 0 && $_FILES['file1']['type'] != "text/plain"){   //File mu
 <!-- INPUT NEW ITEMS -->
 <!DOCTYPE html>
 <html>
-<head> </head>
+<head> 
+	<link rel="stylesheet" href="/todo_style.css">
+</head>
 <body>
+<div id="body"> 
+	<div id="container"> 	
+<h2> My "to-do" List</h2>
 <hr>
-<h2>My "to-do" List</h2>
 <? if (!empty($errorMessage)) : ?>
 <?= '<p>{$errorMessage}</p>'; ?>
 <? endif; ?>
@@ -83,7 +86,7 @@ if (count($_FILES) > 0 && $_FILES['file1']['type'] != "text/plain"){   //File mu
 	</p>
 	<button type="submit"> Enter </button>
 </form>
-<h2>Upload File</h2>
+<h2 >Upload File</h2>
 <hr>
 
 <? if (isset($saved_filename)) : ?>
@@ -93,8 +96,10 @@ if (count($_FILES) > 0 && $_FILES['file1']['type'] != "text/plain"){   //File mu
 		<label for="file1">File to upload: </label>
 		<input type="file" id="file1" name="file1"> 
 		<p>
-			<input type="submit" value="Upload">
+			<button type="submit"> Upload </button>
 		</p>	
 	</form>
+</div>
+</div>
 </body>
 </html>
