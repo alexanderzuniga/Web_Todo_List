@@ -15,12 +15,14 @@ if (isset($_GET['removeIndex'])) {
 	$removeIndex = $_GET['removeIndex'];
 	unset($TODO_list[$removeIndex]);
 	$TDL->write($TODO_list);
+	header('Location:http://todo.dev/complete_todo.php');
+	exit(0);
 } 
 	// Adding items 
 class CustomException extends Exception {}
 if (!empty($_POST['new_item'])) {
 	try {
-		if (strlen($_POST['new_item']) > 5) {
+		if (strlen($_POST['new_item']) > 125) {
 		    throw new CustomException("<script type='text/javascript'>alert('Total charachters must not excede 5 charachters.');</script>");
 		}
 		array_push($TODO_list, $_POST['new_item']);
