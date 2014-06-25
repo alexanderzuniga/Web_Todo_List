@@ -1,103 +1,101 @@
+<?
+function getOffset() {
+		$page = isset($_GET['page']) ? $_GET['page'] : 1;
+		return ($page - 1) * 4;
+	}
+$dbc = new PDO('mysql:host=127.0.0.1;dbname=todo_list_db', 'root', '');
 
+$dbc->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+$count = $dbc->query('SELECT count(*) FROM todo_list ')->fetchColumn();
+
+$numPages = ceil($count / 4);
+
+$page = isset($_GET['page']) ? $_GET['page'] : 1;
+
+$nextPage = $page + 1;
+$prevPage = $page - 1;
+
+$TODO_list = $dbc->query('SELECT * FROM todo_list LIMIT 4 OFFSET ' .  getOffset())->fetchAll(PDO::FETCH_ASSOC);
+//var_dump($TODO_list);
+if(!empty($_POST)) {
+	if (empty($_POST['remove'])) {
+		try {
+			foreach ($_POST as $key => $value) {
+				if ($value == ''){
+					throw new Exception("Please insert item to $key ", 1);
+				}
+			} 
+			$stmt = $dbc->prepare('INSERT INTO todo_list (todo) VALUES (:todo)');
+
+		    $stmt->bindValue(':todo', $_POST['todo'], PDO::PARAM_STR);
+
+		    $stmt->execute();
+		    header('Location: http://todo.dev/complete_todo.php');
+
+		} catch (Exception $e) {
+			echo $e->getMessage();
+		}
+//Removing items
+	} else {
+		$removeItem = $dbc->prepare('DELETE FROM todo_list WHERE id = :id');
+		$removeItem->bindValue(':id', $_POST['remove'], PDO::PARAM_INT);
+		$removeItem->execute();
+		unset($_POST['remove']);
+		header('Location:http://todo.dev/complete_todo.php');
+		exit(0);
+	} 
+}
+require_once 'classes/filestore.php';
+?>
 <!DOCTYPE html>
 <html>
 <head> 
-<?
-require_once 'classes/filestore.php';
-$TDL = new Filestore('data/list.txt');
-// var_dump($TDL->filename);
-$TODO_list = $TDL->read($TDL->filename);
-// var_dump($TODO_list);
-$errorMessage = '';
-
-	//Removing items
-if (isset($_GET['removeIndex'])) {
-	$removeIndex = $_GET['removeIndex'];
-	unset($TODO_list[$removeIndex]);
-	$TDL->write($TODO_list);
-	header('Location:http://todo.dev/complete_todo.php');
-	exit(0);
-} 
-	// Adding items 
-class CustomException extends Exception {}
-if (!empty($_POST['new_item'])) {
-	try {
-		if (strlen($_POST['new_item']) > 125) {
-		    throw new CustomException("<script type='text/javascript'>alert('Total charachters must not excede 5 charachters.');</script>");
-		}
-		array_push($TODO_list, $_POST['new_item']);
-		if (!is_array($TODO_list)) {
-			throw new Exception ("<script type='text/javascript'>alert('Submitted list must be an array.');</script>");
-		}
-		$TDL->write($TODO_list);
-		header('Location: /complete_todo.php');
-	} catch (CustomException $ce) {
-		echo  $ce->getMessage();
-		$msg = $ce-> getMessage() . PHP_EOL;
-	} catch (Exception $e) {
-		echo "Extention:" . $e->getMessage() . PHP_EOL;
-		$msg = $e-> getMessage() . PHP_EOL;
-	}
-}
-	//uploading with no errors
-if (count($_FILES) > 0 && $_FILES['file1']['type'] != "text/plain"){   //File must be text
-	$errorMessage = "Error! File must be plain text. \n";
-		echo $errorMessage;
-	} else if  (count($_FILES) > 0 && $_FILES['file1']['error'] == 0) {
-		$Appending_array = ($_FILES);
-		$upload_dir = '/vagrant/sites/todo.dev/public/uploads/';
-		$filename = basename($_FILES['file1']['name']);
-		$saved_filename = $upload_dir . $filename;
-		move_uploaded_file($_FILES['file1']['tmp_name'], $saved_filename);
-
-			$uploaded_TDL = new Filestore($saved_filename);
-			$newfile= $uploaded_TDL->read_lines();
-			$TODO_list= array_merge($TODO_list, $newfile);
-			$TDL->write($TODO_list);
-
-	} 
-?>
 	<link rel="stylesheet" href="/todo_style.css">
 </head>
 <body>
 <div id="body"> 
 	<div id="container"> 	
-<h2> My "to-do" List</h2>
+<h2> My "to-do" List </h2>
 <hr>
 <? if (!empty($errorMessage)) : ?>
 <?= '<p>{$errorMessage}</p>'; ?>
 <? endif; ?>
 <ul>
-<? foreach ($TODO_list as $key => $item) : ?>
-<li> 
-	<?=htmlspecialchars(strip_tags($item));?> 
-	<a href="complete_todo.php?removeIndex=<?=$key?>">*Remove Item*</a><br>
-</li>
-<? endforeach; ?>
+<? foreach($TODO_list as $todo): ?>
+	<li> 
+	<?= $todo['todo']; ?>
+	<button class="btn-remove" type="submit" name="remove" data-todo="<?= $todo['id'];?>">Remove</button> 
+
+	</li>
+	<? endforeach; ?>
 </ul>
-	
 </p>
+
+<!-- New item FORM  -->
 <form method = "POST" action="/complete_todo.php"> 
 	<p>
-		<label for="new_item"> New Item: </label>
-		<input id="new_item" name="new_item" type="text" placeholder="New Item Here" autofocus></label>
+		<label for="todo"> New Item: </label>
+		<input id="todo" name="todo" type="text" placeholder="New Item Here" autofocus>
 	</p>
 	<button type="submit"> Enter </button>
-</form>
-<h2 >Upload File</h2>
-<hr>
+</form> 
 
-<? if (isset($saved_filename)) : ?>
-<?=  "<p>You can download your file <a href='/uploads/{$filename}'>here</a>.</p>"; ?>
-<? endif; ?>
-	<form method="POST" enctype="multipart/form-data">
-		<label for="file1">File to upload: </label>
-		<input type="file" id="file1" name="file1"> 
-		<p>
-			<button type="submit"> Upload </button>
-		</p>	
-	</form>
+<!-- Removal hidden form  -->
+<form id="removeForm" action="complete_todo.php" method="POST">
+    <input id="removeId" type="hidden" name="remove" value="">
+</form>
 </div>
 </div>
 </body>
+<script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
+<script>
+$('.btn-remove').click(function () {
+    var todoId = $(this).data('todo');
+    if (confirm('Are you sure you want to remove item ' + todoId + '?')) {
+        $('#removeId').val(todoId);
+        $('#removeForm').submit();
+    }
+});
+</script>
 </html>
